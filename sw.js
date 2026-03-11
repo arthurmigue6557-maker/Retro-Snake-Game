@@ -2,11 +2,12 @@
 // Snake Game Service Worker
 // ===========================================
 
-const CACHE_NAME = "snake-game-v1";
+const CACHE_NAME = "snake-game-v2";
 
 const FILES_TO_CACHE = [
   "./",
-  "./index.html"
+  "./index.html",
+  "/favicon.ico"
 ];
 
 // Install Service Worker
