@@ -6,7 +6,7 @@ const CACHE_NAME = "snake-game-v2";
 
 const FILES_TO_CACHE = [
   "./",
-  "./index.html",
+  "./index.min.html",
   "/favicon.ico"
 ];
 
@@ -57,3 +57,22 @@ self.addEventListener("fetch", event => {
   );
 
 });
+
+});
+
+// Fetch (serve cached files offline)
+self.addEventListener("fetch", event => {
+
+  event.respondWith(
+
+    caches.match(event.request)
+      .then(response => {
+
+        return response || fetch(event.request);
+
+      })
+
+  );
+
+});
+
