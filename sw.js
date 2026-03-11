@@ -53,6 +53,20 @@ self.addEventListener("fetch", event => {
   );
 
 });
+
+});
+
+// Fetch (serve cached files offline)
+self.addEventListener("fetch", event => {
+
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        return response || fetch(event.request);
+      })
+  );
+
+});
 });
 
 // Fetch (serve cached files offline)
@@ -88,5 +102,6 @@ self.addEventListener("fetch", event => {
   );
 
 });
+
 
 
