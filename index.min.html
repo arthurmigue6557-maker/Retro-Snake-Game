@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Retro Snake Game - Play Free Online Snake</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <meta name="description"
+        content="Play a fast and addictive retro Snake game directly in your browser. Works on mobile and desktop with sound, skins and achievements.">
+
+    <meta name="keywords" content="snake game, play snake online, retro snake, browser snake game, free snake game">
+
+    <meta name="author" content="Arthur">
+
+    <meta name="robots" content="index, follow">
+
+    <link rel="canonical" href="https://yoursite.com/snake">
+    <meta property="og:title" content="Retro Snake Game">
+    <meta property="og:description" content="Play the classic Snake game online with skins and achievements.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://yoursite.com/snake">
+    <meta property="og:image" content="favicon.ico">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <meta name="theme-color" content="#0b0b0b">
+    <style>
+        /* =========================================================
+   RETRO ARCADE SNAKE
+   ========================================================= */
+
+        :root {
+            --bg: #0b0b0b;
+            --grid: #141414;
+            --snake: #39ff14;
+            --snakeHead: #66ff66;
+            --apple: #ff3b3b;
+            --ui: #cfcfcf;
+            --glow: 0 0 8px #39ff14;
+            --font: monospace;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ui);
+            font-family: var(--font);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* =========================================================
+   HEADER / UI
+   ========================================================= */
+
+        #topUI {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #scoreBox {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #111;
+            border: 1px solid #333;
+            color: #ddd;
+            padding: 6px 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #222;
+        }
+
+        /* =========================================================
+   CANVAS
+   ========================================================= */
+
+        #gameWrap {
+            position: relative;
+            width: 90vw;
+            max-width: 600px;
+        }
+
+        canvas {
+            width: 100%;
+            background: #050505;
+            border: 2px solid #222;
+            box-shadow: 0 0 20px #000;
+        }
+
+        /* =========================================================
+   GAME OVER
+   ========================================================= */
+
+        #gameOver {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            display: none;
+        }
+
+        /* =========================================================
+   ACHIEVEMENT POPUPS
+   ========================================================= */
+
+        #achievements {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ach {
+            background: #111;
+            border: 1px solid #444;
+            padding: 8px 10px;
+            font-size: 13px;
+            animation: fade 4s forwards;
+        }
+
+        @keyframes fade {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* =========================================================
+   MOBILE CONTROLS
+   ========================================================= */
+
+        #mobileControls {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: 60px 60px;
+            gap: 6px;
+        }
+
+        .ctrl {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+            border: 1px solid #333;
+            font-size: 20px;
+            user-select: none;
+        }
+
+        /* =========================================================
+   ADS PLACEHOLDER
+   ========================================================= */
+
+        #adSpace {
+            margin-top: 25px;
+            width: 100%;
+            max-width: 600px;
+            height: 90px;
+            border: 1px dashed #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        #skinsUI {
+            margin-top: 6px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            font-size: 12px;
+        }
+
+        .skinBtn {
+            background: #111;
+            border: 1px solid #333;
+            color: #ddd;
+            padding: 4px 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .skinBtn:hover {
+            background: #222;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ======================================================
+     TOP UI
+====================================================== -->
+
+    <div id="topUI">
+
+        <div id="scoreBox">
+            <div>Score: <span id="score">0</span></div>
+            <div>High: <span id="high">0</span></div>
+        </div>
+
+        <div>
+            <button id="soundBtn">Sound ON</button>
+            <button id="musicBtn">Music OFF</button>
+        </div>
+
+    </div>
+
+    <!-- ======================================================
+     GAME
+====================================================== -->
+
+    <div id="gameWrap">
+
+        <canvas id="game"></canvas>
+
+        <div id="gameOver">
+            <div>GAME OVER</div>
+            <button id="restartBtn">Restart</button>
+        </div>
+
+    </div>
+
+    <!-- ======================================================
+     MOBILE CONTROLS
+====================================================== -->
+
+    <div id="mobileControls">
+
+        <div></div>
+        <div class="ctrl" data-dir="up">▲</div>
+        <div></div>
+
+        <div class="ctrl" data-dir="left">◀</div>
+        <div class="ctrl" data-dir="down">▼</div>
+        <div class="ctrl" data-dir="right">▶</div>
+
+    </div>
+
+    <h1>Play Snake Game Online</h1>
+    <p>This retro snake game works on mobile and desktop...</p>
+    <!-- =========================================================
+SKINS SNAKE 
+==============================================================-->
+
+    <div id="skinsUI">
+        <span>Skin:</span>
+
+        <button class="skinBtn" data-skin="classic">Classic</button>
+        <button class="skinBtn" data-skin="blue">Blue</button>
+        <button class="skinBtn" data-skin="purple">Cyber</button>
+        <button class="skinBtn" data-skin="gold">Gold</button>
+        <button class="skinBtn" data-skin="rainbow">Rainbow</button>
+
+    </div>
+    <div id="skinsUI">
+        <span>Skin:</span>
+
+        <button class="skinBtn" data-skin="classic">Classic</button>
+        <button class="skinBtn" data-skin="blue">Blue</button>
+        <button class="skinBtn" data-skin="purple">Cyber</button>
+        <button class="skinBtn" data-skin="gold">Gold</button>
+        <button class="skinBtn" data-skin="rainbow">Rainbow</button>
+
+    </div>
+    <!-- ======================================================
+     ADS PLACEHOLDER
+====================================================== -->
+
+    <div id="adSpace">
+        <!-- AdSense Ad Slot -->
+        Ad Space
+    </div>
+
+    <div id="achievements"></div>
+
+    <script>
+
+        /* =========================================================
+           CONSTANTS
+        ========================================================= */
+
+        const GRID = 20
+        const START_SPEED = 120
+        const SPEED_STEP = 3
+
+        /* =========================================================
+           CANVAS
+        ========================================================= */
+
+        const canvas = document.getElementById("game")
+        const ctx = canvas.getContext("2d")
+
+        let size = 600
+        canvas.width = size
+        canvas.height = size
+
+        let cell = size / GRID
+
+        /* =========================================================
+           GAME STATE
+        ========================================================= */
+
+        let snake
+        let dir
+        let nextDir
+        let apple
+        let score
+        let high = Number(localStorage.getItem("snakeHigh") || 0)
+
+        let gameOver = false
+        let speed = START_SPEED
+        let lastMove = 0
+
+        document.getElementById("high").textContent = high
+
+        /* =========================================================
+           PARTICLES
+        ========================================================= */
+
+        let particles = []
+
+        /* =========================================================
+           AUDIO SYSTEM
+        ========================================================= */
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext
+        const audio = new AudioCtx()
+
+        let soundEnabled = true
+        let musicEnabled = false
+
+        function playTone(freq, duration) {
+
+            if (!soundEnabled) return
+
+            const osc = audio.createOscillator()
+            const gain = audio.createGain()
+
+            osc.type = "square"
+            osc.frequency.value = freq
+
+            gain.gain.value = 0.05
+
+            osc.connect(gain)
+            gain.connect(audio.destination)
+
+            osc.start()
+
+            setTimeout(() => {
+                osc.stop()
+            }, duration)
+
+        }
+
+        function achievementSound() {
+
+            playTone(1200, 80)
+            setTimeout(() => playTone(1500, 80), 80)
+            setTimeout(() => playTone(1700, 120), 160)
+
+        }
+
+        /* =========================================================
+           MUSIC SYSTEM
+        ========================================================= */
+
+        let musicTimer = null
+
+        function startMusic() {
+
+            const notes = [600, 800, 900, 700, 500, 700]
+
+            let i = 0
+
+            musicTimer = setInterval(() => {
+
+                if (!musicEnabled) return
+
+                playTone(notes[i], 80)
+
+                i++
+                if (i >= notes.length) i = 0
+
+            }, 220)
+
+        }
+
+        startMusic()
+
+        /* =========================================================
+           ACHIEVEMENTS
+        ========================================================= */
+
+        const achievementList = {
+            firstApple: false,
+            score10: false,
+            score25: false,
+            score50: false,
+            score100: false,
+            longSnake: false,
+            fastPlayer: false,
+            survivor: false,
+            master: false,
+            hunter: false
+        }
+
+        let saved = JSON.parse(localStorage.getItem("snakeAch") || "{}")
+        Object.assign(achievementList, saved)
+
+        function unlock(name, text) {
+
+            if (achievementList[name]) return
+
+            achievementList[name] = true
+
+            localStorage.setItem("snakeAch", JSON.stringify(achievementList))
+
+            achievementSound()
+
+            const el = document.createElement("div")
+            el.className = "ach"
+            el.textContent = "🏆 " + text
+
+            document.getElementById("achievements").appendChild(el)
+
+            setTimeout(() => el.remove(), 4000)
+
+        }
+
+        /* =========================================================
+           RESET GAME
+        ========================================================= */
+
+        function reset() {
+
+            snake = [{ x: 10, y: 10 }]
+
+            dir = "right"
+            nextDir = "right"
+
+            spawnApple()
+
+            score = 0
+            speed = START_SPEED
+            gameOver = false
+
+            document.getElementById("score").textContent = score
+
+            document.getElementById("gameOver").style.display = "none"
+
+        }
+
+        /* =========================================================
+           APPLE
+        ========================================================= */
+
+        function spawnApple() {
+
+            apple = {
+                x: Math.floor(Math.random() * GRID),
+                y: Math.floor(Math.random() * GRID)
+            }
+
+        }
+
+        /* =========================================================
+           COLLISION
+        ========================================================= */
+
+        function hitSelf(x, y) {
+
+            for (let s of snake) {
+
+                if (s.x === x && s.y === y) return true
+
+            }
+
+            return false
+
+        }
+
+        /* =========================================================
+           SNAKE UPDATE
+        ========================================================= */
+
+        function update() {
+
+            dir = nextDir
+
+            let head = { ...snake[0] }
+
+            if (dir === "right") head.x++
+            if (dir === "left") head.x--
+            if (dir === "up") head.y--
+            if (dir === "down") head.y++
+
+            /* wrap walls */
+
+            if (head.x < 0) head.x = GRID - 1
+            if (head.x >= GRID) head.x = 0
+            if (head.y < 0) head.y = GRID - 1
+            if (head.y >= GRID) head.y = 0
+
+            /* self collision */
+
+            if (hitSelf(head.x, head.y)) {
+                endGame()
+                return
+            }
+
+            snake.unshift(head)
+
+            /* apple */
+
+            if (head.x === apple.x && head.y === apple.y) {
+
+                score++
+                document.getElementById("score").textContent = score
+
+                playTone(900, 80)
+
+                spawnApple()
+
+                speed = Math.max(50, speed - SPEED_STEP)
+
+                createParticles()
+
+                checkAchievements()
+
+            } else {
+
+                snake.pop()
+
+            }
+
+        }
+
+        /* =========================================================
+           PARTICLES
+        ========================================================= */
+
+        function createParticles() {
+
+            for (let i = 0; i < 12; i++) {
+
+                particles.push({
+                    x: apple.x * cell + cell / 2,
+                    y: apple.y * cell + cell / 2,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 30
+                })
+
+            }
+
+        }
+
+        /* =========================================================
+           DRAW
+        ========================================================= */
+
+        function draw() {
+
+            ctx.fillStyle = "#050505"
+            ctx.fillRect(0, 0, size, size)
+
+            /* grid */
+
+            ctx.strokeStyle = "#101010"
+
+            for (let i = 0; i < GRID; i++) {
+
+                ctx.beginPath()
+                ctx.moveTo(i * cell, 0)
+                ctx.lineTo(i * cell, size)
+                ctx.stroke()
+
+                ctx.beginPath()
+                ctx.moveTo(0, i * cell)
+                ctx.lineTo(size, i * cell)
+                ctx.stroke()
+
+            }
+
+            /* apple */
+
+            ctx.fillStyle = "#ff3b3b"
+            ctx.fillRect(apple.x * cell, apple.y * cell, cell, cell)
+
+            /* snake */
+
+            snake.forEach((s, i) => {
+
+                ctx.fillStyle = i === 0 ? "#66ff66" : "#39ff14"
+
+                ctx.fillRect(
+                    s.x * cell,
+                    s.y * cell,
+                    cell,
+                    cell
+                )
+
+            })
+
+            /* particles */
+
+            particles.forEach(p => {
+
+                ctx.fillStyle = "#ff3b3b"
+                ctx.fillRect(p.x, p.y, 2, 2)
+
+                p.x += p.vx
+                p.y += p.vy
+                p.life--
+
+            })
+
+            particles = particles.filter(p => p.life > 0)
+
+        }
+
+        /* =========================================================
+           GAME LOOP
+        ========================================================= */
+
+        function loop(t) {
+
+            requestAnimationFrame(loop)
+
+            if (gameOver) return
+
+            if (t - lastMove > speed) {
+
+                update()
+                lastMove = t
+
+            }
+
+            draw()
+
+        }
+
+        requestAnimationFrame(loop)
+
+        /* =========================================================
+           GAME OVER
+        ========================================================= */
+
+        function endGame() {
+
+            gameOver = true
+
+            playTone(120, 400)
+
+            if (score > high) {
+
+                high = score
+                localStorage.setItem("snakeHigh", high)
+                document.getElementById("high").textContent = high
+
+            }
+
+            document.getElementById("gameOver").style.display = "flex"
+
+        }
+
+        /* =========================================================
+           ACHIEVEMENT CHECK
+        ========================================================= */
+
+        function checkAchievements() {
+
+            if (score >= 1) unlock("firstApple", "First Apple")
+            if (score >= 10) unlock("score10", "Score 10")
+            if (score >= 25) unlock("score25", "Score 25")
+            if (score >= 50) unlock("score50", "Score 50")
+            if (score >= 100) unlock("score100", "Score 100")
+            if (snake.length >= 15) unlock("longSnake", "Long Snake")
+            if (speed < 90) unlock("fastPlayer", "Fast Player")
+            if (score >= 30) unlock("survivor", "Survivor")
+            if (score >= 70) unlock("hunter", "Apple Hunter")
+            if (score >= 120) unlock("master", "Snake Master")
+
+        }
+
+        /* =========================================================
+           KEYBOARD CONTROLS
+        ========================================================= */
+
+        document.addEventListener("keydown", e => {
+
+            const key = e.key
+
+            if (key === "ArrowUp" && dir !== "down") nextDir = "up"
+            if (key === "ArrowDown" && dir !== "up") nextDir = "down"
+            if (key === "ArrowLeft" && dir !== "right") nextDir = "left"
+            if (key === "ArrowRight" && dir !== "left") nextDir = "right"
+
+        })
+
+        /* =========================================================
+           MOBILE BUTTONS
+        ========================================================= */
+
+        document.querySelectorAll(".ctrl").forEach(b => {
+
+            b.onclick = () => {
+
+                let d = b.dataset.dir
+
+                if (d === "up" && dir !== "down") nextDir = "up"
+                if (d === "down" && dir !== "up") nextDir = "down"
+                if (d === "left" && dir !== "right") nextDir = "left"
+                if (d === "right" && dir !== "left") nextDir = "right"
+
+            }
+
+        })
+
+        /* =========================================================
+           SWIPE CONTROLS
+        ========================================================= */
+
+        let sx = 0
+        let sy = 0
+
+        canvas.addEventListener("touchstart", e => {
+
+            sx = e.touches[0].clientX
+            sy = e.touches[0].clientY
+
+        })
+
+        canvas.addEventListener("touchend", e => {
+
+            let dx = e.changedTouches[0].clientX - sx
+            let dy = e.changedTouches[0].clientY - sy
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+
+                if (dx > 30 && dir !== "left") nextDir = "right"
+                if (dx < -30 && dir !== "right") nextDir = "left"
+
+            } else {
+
+                if (dy > 30 && dir !== "up") nextDir = "down"
+                if (dy < -30 && dir !== "down") nextDir = "up"
+
+            }
+
+        })
+
+        /* =========================================================
+           UI BUTTONS
+        ========================================================= */
+
+        document.getElementById("restartBtn").onclick = reset
+
+        document.getElementById("soundBtn").onclick = () => {
+
+            soundEnabled = !soundEnabled
+            document.getElementById("soundBtn").textContent = soundEnabled ? "Sound ON" : "Sound OFF"
+
+        }
+
+        document.getElementById("musicBtn").onclick = () => {
+
+            musicEnabled = !musicEnabled
+            document.getElementById("musicBtn").textContent = musicEnabled ? "Music ON" : "Music OFF"
+
+        }
+
+        /* =========================================================
+           START
+        ========================================================= */
+
+        reset()
+
+        /* =========================================================
+           SNAKE SKINS
+        ========================================================= */
+
+        const skins = {
+
+            classic: {
+                body: "#39ff14",
+                head: "#66ff66"
+            },
+
+            blue: {
+                body: "#00e5ff",
+                head: "#5df2ff"
+            },
+
+            purple: {
+                body: "#a259ff",
+                head: "#c084ff"
+            },
+
+            gold: {
+                body: "#ffd700",
+                head: "#fff066"
+            },
+
+            rainbow: {
+                rainbow: true
+            }
+
+        }
+
+        let currentSkin = localStorage.getItem("snakeSkin") || "classic"
+
+        // ===========================================
+        // SERVICE WORKER REGISTER
+        // ===========================================
+
+        if ("serviceWorker" in navigator) {
+
+            window.addEventListener("load", () => {
+
+                navigator.serviceWorker
+                    .register("sw.js")
+                    .then(() => console.log("Service Worker registered"))
+
+                    .catch(err => console.log("SW error", err));
+
+            });
+
+        }
+    </script>
+</body>
+
+</html>
